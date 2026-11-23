@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b121a">
+  <title>PUMP EARLY RADAR V2 — LIVE DETECTOR</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b121a;--panel:#111d28;--panel2:#172735;--line:#294050;--text:#edf5fa;--muted:#91a6b6;--green:#55e0ad;--amber:#f2bd61;--red:#ff7777;--blue:#77baff}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% -10%,#173344 0,transparent 35%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    button,input{font:inherit}.wrap{max-width:1150px;margin:auto;padding:16px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 18px}.brand{font-size:21px;font-weight:900;letter-spacing:1px}.brand span{color:var(--green)}.sub{font-size:10px;color:var(--muted);letter-spacing:1.4px;margin-top:4px}
+    .status{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:99px;padding:8px 11px;font-size:11px;color:var(--muted);white-space:nowrap}.lamp{width:8px;height:8px;border-radius:50%;background:#718392}.lamp.on{background:var(--green);box-shadow:0 0 10px #55e0ad}
+    .hero,.panel,.stat{background:var(--panel);border:1px solid var(--line);border-radius:15px}.hero{padding:16px;background:linear-gradient(135deg,#172d3a,#111d28)}h1{font-size:19px;margin:0 0 7px}.hero p{font-size:12px;line-height:1.5;color:var(--muted);margin:0}
+    .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:10px;padding:11px 14px;font-weight:750;font-size:12px;cursor:pointer}button.primary{background:#14543f;border-color:#267b5d;color:#dffff2}button:disabled{opacity:.45;cursor:not-allowed}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:12px 0}.stat{padding:12px}.label{font-size:9px;color:var(--muted);letter-spacing:.9px}.value{font-size:23px;font-weight:850;margin-top:6px;font-variant-numeric:tabular-nums}
+    .grid{display:grid;grid-template-columns:1.4fr .6fr;gap:12px}.panel{padding:14px;min-width:0}.panelhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.paneltitle{font-size:12px;font-weight:850;letter-spacing:.8px}.tiny{font-size:10px;color:var(--muted)}
+    .feed{display:flex;flex-direction:column;gap:8px}.empty{border:1px dashed #3a5060;border-radius:10px;padding:24px 12px;text-align:center;color:var(--muted);font-size:12px;line-height:1.6}
+    .token{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.tokenname{font-size:13px;font-weight:800;overflow-wrap:anywhere}.symbol{color:var(--green)}.address{font-size:10px;color:var(--muted);overflow-wrap:anywhere;margin-top:5px}.tokenmeta{display:flex;gap:9px;flex-wrap:wrap;color:var(--muted);font-size:10px;margin-top:7px}.tokenright{text-align:right}.age{font-size:10px;color:var(--muted)}.tag{display:inline-block;margin-top:6px;border:1px solid #315b4c;background:#153529;color:#a8f2d2;border-radius:7px;padding:4px 6px;font-size:9px;font-weight:800}
+    .modules{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.module{padding:10px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);font-size:11px}.module b{display:block;margin-bottom:5px}.pending{color:var(--amber);font-size:9px}.ready{color:var(--green);font-size:9px}
+    .log{max-height:190px;overflow:auto;background:#09121a;border:1px solid var(--line);border-radius:9px;padding:9px;font:10px/1.55 ui-monospace,SFMono-Regular,monospace;color:#a9bdca;white-space:pre-wrap;overflow-wrap:anywhere}
+    .note{margin-top:12px;border:1px solid #5b4b2d;background:#2b251a;color:#ead7ae;padding:11px;border-radius:10px;font-size:11px;line-height:1.5}.footer{text-align:center;color:#718797;font-size:10px;padding:18px 0 8px}
+    @media(max-width:700px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}.wrap{padding:12px}.brand{font-size:18px}.value{font-size:21px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div><div class="brand">PUMP EARLY <span>RADAR</span></div><div class="sub">V2 · LIVE DETECTOR · SOLANA</div></div>
+    <div class="status"><span id="lamp" class="lamp"></span><span id="statusText">DESCONECTADO</span></div>
+  </header>
+
+  <section class="hero">
+    <h1>Detector de nuevos lanzamientos</h1>
+    <p>Conecta un único WebSocket a PumpPortal para recibir eventos de nuevos tokens, mostrarlos en el feed y medir el ritmo de detección. Esta versión no compra, no vende y no calcula todavía señales de entrada.</p>
+    <div class="actions">
+      <button id="connectBtn" class="primary">CONECTAR RADAR</button>
+      <button id="disconnectBtn" disabled>DESCONECTAR</button>
+      <button id="clearBtn">LIMPIAR FEED</button>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><div class="label">TOKENS RECIBIDOS</div><div class="value" id="total">0</div></div>
+    <div class="stat"><div class="label">ÚNICOS</div><div class="value" id="unique">0</div></div>
+    <div class="stat"><div class="label">ÚLTIMO MINUTO</div><div class="value" id="perMinute">0</div></div>
+    <div class="stat"><div class="label">RITMO / SEGUNDO</div><div class="value" id="perSecond">0.00</div></div>
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <div class="panelhead"><div class="paneltitle">FEED EN VIVO</div><div class="tiny" id="feedCount">0 eventos</div></div>
+      <div id="feed" class="feed"><div class="empty">Esperando conexión.<br>Pulsa «CONECTAR RADAR» para iniciar la escucha de nuevos lanzamientos.</div></div>
+    </div>
+    <aside>
+      <div class="panel">
+        <div class="panelhead"><div class="paneltitle">MÓDULOS</div><div class="tiny">V2</div></div>
+        <div class="modules">
+          <div class="module"><b>LIVE DETECTOR</b><span class="ready">● En esta versión</span></div>
+          <div class="module"><b>FAST SCAN</b><span class="pending">● Próxima versión</span></div>
+          <div class="module"><b>TOP 10</b><span class="pending">● Pendiente</span></div>
+          <div class="module"><b>DEEP SCAN</b><span class="pending">● Pendiente</span></div>
+          <div class="module"><b>ORDER FLOW</b><span class="pending">● Pendiente</span></div>
+          <div class="module"><b>SMART WALLETS</b><span class="pending">● Pendiente</span></div>
+          <div class="module"><b>RISK DETECTOR</b><span class="pending">● Pendiente</span></div>
+          <div class="module"><b>SMART ENTRY</b><span class="pending">● Pendiente</span></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:12px">
+        <div class="panelhead"><div class="paneltitle">REGISTRO DEL SISTEMA</div><button id="clearLog" style="padding:6px 8px;font-size:10px">Limpiar</button></div>
+        <div id="log" class="log">[RADAR] Interfaz lista. Sin conexión.</div>
+      </div>
+    </aside>
+  </section>
+
+  <div class="note"><b>Importante:</b> GitHub Pages sirve esta pantalla, pero no mantiene el radar funcionando cuando cierras la página. Esta V2 escucha eventos solo mientras está abierta. Para funcionamiento 24/7 necesitaremos un backend. La conexión directa desde el navegador también puede estar sujeta a cambios o restricciones del proveedor.</div>
+  <div class="footer">PUMP EARLY RADAR V2 · SOLO DETECCIÓN · SIN EJECUCIÓN DE OPERACIONES</div>
+</main>
+<script>
+(() => {
+  "use strict";
+  const WS_URL = "wss://pumpportal.fun/api/data";
+  const $ = id => document.getElementById(id);
+  const state = { ws:null, received:0, unique:new Set(), seen:new Set(), times:[], feed:[], startedAt:null };
+  const fmt = n => new Intl.NumberFormat("es-ES").format(n);
+  function log(message) {
+    const line = `[${new Date().toLocaleTimeString()}] ${message}`;
+    const el = $("log"); el.textContent = (line + "\n" + el.textContent).slice(0,5000);
+  }
+  function setStatus(text, connected) {
+    $("statusText").textContent = text;
+    $("lamp").classList.toggle("on", !!connected);
+    $("connectBtn").disabled = !!connected;
+    $("disconnectBtn").disabled = !connected;
+  }
+  function tokenAddress(data) {
+    return data.mint || data.tokenAddress || data.address || data.ca || "";
+  }
+  function tokenName(data) { return data.name || data.tokenName || "Token sin nombre"; }
+  function tokenSymbol(data) { return data.symbol || data.ticker || "—"; }
+  function renderFeed() {
+    const feed = $("feed"); $("feedCount").textContent = `${state.feed.length} eventos`;
+    if (!state.feed.length) { feed.innerHTML = '<div class="empty">Todavía no se han recibido lanzamientos.</div>'; return; }
+    feed.innerHTML = state.feed.map(item => {
+      const addr = escapeHtml(item.address || "Dirección no incluida");
+      const short = item.address ? item.address.slice(0,5)+"…"+item.address.slice(-5) : "Sin dirección";
+      return `<article class="token">
+        <div><div class="tokenname">${escapeHtml(item.name)} <span class="symbol">$${escapeHtml(item.symbol)}</span></div>
+        <div class="address" title="${addr}">${escapeHtml(short)}</div>
+        <div class="tokenmeta"><span>Detectado: ${escapeHtml(item.time)}</span><span>Evento: nuevo token</span></div></div>
+        <div class="tokenright"><div class="age">${escapeHtml(item.age)}</div><div class="tag">RECIBIDO</div></div>
+      </article>`;
+    }).join("");
+  }
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  }
+  function updateStats() {
+    const now = Date.now(); state.times = state.times.filter(t => now-t <= 60000);
+    $("total").textContent = fmt(state.received);
+    $("unique").textContent = fmt(state.unique.size);
+    $("perMinute").textContent = fmt(state.times.length);
+    const elapsed = state.startedAt ? Math.max(1,(now-state.startedAt)/1000) : 0;
+    $("perSecond").textContent = elapsed ? (state.received/elapsed).toFixed(2) : "0.00";
+  }
+  function handleMessage(raw) {
+    let data;
+    try { data = JSON.parse(raw); } catch { log("Mensaje no JSON recibido; ignorado."); return; }
+    if (Array.isArray(data)) { data.forEach(handleObject); return; }
+    handleObject(data);
+  }
+  function handleObject(data) {
+    if (!data || typeof data !== "object") return;
+    // Acepta únicamente mensajes que parezcan representar un nuevo token.
+    const address = tokenAddress(data);
+    const looksLikeLaunch = !!address && (data.txType === "create" || data.initialBuy !== undefined || data.uri !== undefined || data.name !== undefined || data.symbol !== undefined);
+    if (!looksLikeLaunch) { log("Evento recibido sin campos suficientes para clasificarlo como lanzamiento."); return; }
+    state.received++;
+    const now = Date.now(); state.times.push(now);
+    if (state.seen.has(address)) { updateStats(); return; }
+    state.seen.add(address); state.unique.add(address);
+    const item = { address, name:tokenName(data), symbol:tokenSymbol(data), time:new Date(now).toLocaleTimeString(), age:"Ahora" };
+    state.feed.unshift(item); state.feed = state.feed.slice(0,100);
+    renderFeed(); updateStats();
+    log(`Nuevo token: ${item.name} (${item.symbol}) · ${address}`);
+  }
+  function connect() {
+    if (state.ws && (state.ws.readyState === WebSocket.OPEN || state.ws.readyState === WebSocket.CONNECTING)) return;
+    log("Abriendo WebSocket de PumpPortal…");
+    setStatus("CONECTANDO", false);
+    try {
+      const ws = new WebSocket(WS_URL); state.ws = ws;
+      ws.onopen = () => {
+        state.startedAt = Date.now();
+        setStatus("CONECTADO", true);
+        log("WebSocket conectado. Solicitando nuevos lanzamientos.");
+        ws.send(JSON.stringify({ method:"subscribeNewToken" }));
+      };
+      ws.onmessage = event => handleMessage(event.data);
+      ws.onerror = () => { log("Error de WebSocket. Comprueba conexión o disponibilidad del proveedor."); };
+      ws.onclose = event => {
+        setStatus("DESCONECTADO", false);
+        log(`Conexión cerrada (código ${event.code}). Pulsa conectar para reintentar.`);
+        if (state.ws === ws) state.ws = null;
+      };
+    } catch (err) {
+      setStatus("ERROR", false); log(`No se pudo iniciar WebSocket: ${err.message}`);
+    }
+  }
+  function disconnect() {
+    if (state.ws) { const ws=state.ws; state.ws=null; ws.close(); }
+    setStatus("DESCONECTADO", false); log("Desconexión solicitada.");
+  }
+  $("connectBtn").addEventListener("click", connect);
+  $("disconnectBtn").addEventListener("click", disconnect);
+  $("clearBtn").addEventListener("click", () => { state.feed=[]; renderFeed(); log("Feed visual limpiado; contadores conservados."); });
+  $("clearLog").addEventListener("click", () => { $("log").textContent="Registro limpiado."; });
+  setStatus("DESCONECTADO", false); updateStats();
+  setInterval(updateStats,1000);
+})();
+</script>
+</body>
+</html>
